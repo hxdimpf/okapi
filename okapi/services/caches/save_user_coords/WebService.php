@@ -92,7 +92,7 @@ class WebService
                         '".Db::escape_string($longitude)."',
                         '".Db::escape_string($cache_id)."',
                         '".Db::escape_string($user_id)."',
-                        '".Db::escape_string("")."'
+                        ''
                     )
                 ");
             } else {
