@@ -5,10 +5,10 @@
         <p>This method removes geocaches from a list.</p>
     </desc>
     <req name="list_id">
-        <p>The id of a list. List IDs can be obtained by ::service/lists/query</p>
+        <p>The id of a list. List IDs can be obtained by ::services/lists/query</p>
     </req>
     <req name="cache_codes">
-        <p>A pipe separated list of cache_codes to be removed to the list.</p>
+        <p>A pipe separated list of cache_codes to be removed from the list.</p>
         <p>Up to 500 geoaches can be removed from the list by one request to
         this method</p>
     </req>

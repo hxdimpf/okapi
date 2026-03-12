@@ -2,10 +2,9 @@
 
 namespace okapi\services\lists\update;
 
-use okapi\core\Exception\InvalidParam;
 use okapi\core\Db;
+use okapi\core\Exception\InvalidParam;
 use okapi\core\Okapi;
-use okapi\core\OkapiServiceRunner;
 use okapi\core\Request\OkapiRequest;
 use okapi\Settings;
 
@@ -29,81 +28,87 @@ class WebService
         {
             $user_id = $request->token->user_id;
 
-            $listId          = $request->get_parameter('list_id');
-            $listName        = $request->get_parameter('list_name');
-            $listDescription = $request->get_parameter('list_description');
-            $listStatus      = $request->get_parameter('list_status');
-            $listWatch       = $request->get_parameter('list_watch');
-            $listPassword    = $request->get_parameter('list_password');
+            $list_id          = $request->get_parameter('list_id');
+            $list_name        = $request->get_parameter('list_name');
+            $list_description = $request->get_parameter('list_description');
+            $list_status      = $request->get_parameter('list_status');
+            $list_watch       = $request->get_parameter('list_watch');
+            $list_password    = $request->get_parameter('list_password');
 
-            if (empty($listId) || !is_numeric($listId)) {
+            if (empty($list_id) || !is_numeric($list_id)) {
                 throw new InvalidParam('list_id', 'list_id is mandatory and must be numeric.');
             }
 
-            if (empty($listName) && empty($listDescription) && ($listStatus === null || $listStatus === '') && ($listWatch === null || $listWatch === '') && ($listPassword === null || $listPassword === '')) {
+            // Verify list ownership
+            $count = Db::select_value("
+                SELECT COUNT(*)
+                FROM cache_lists
+                WHERE id = '".Db::escape_string($list_id)."'
+                  AND user_id = '".Db::escape_string($user_id)."'
+            ");
+            if ($count == 0) {
+                throw new InvalidParam('list_id', 'The specified list does not exist or does not belong to you.');
+            }
+
+            if (empty($list_name) && empty($list_description) && ($list_status === null || $list_status === '') && ($list_watch === null || $list_watch === '') && ($list_password === null || $list_password === '')) {
                 throw new InvalidParam('list_name, list_description, list_status, list_watch, list_password', 'At least one optional parameter is required.');
             }
 
-            $updateFields = array();
+            $update_parts = array();
 
-            if (!empty($listName)) {
-                $updateFields['name'] = Db::escape_string($listName);
+            if (!empty($list_name)) {
+                $update_parts[] = "name = '".Db::escape_string($list_name)."'";
             }
 
-            if (!empty($listDescription)) {
-                $updateFields['description'] = Db::escape_string($listDescription);
+            if (!empty($list_description)) {
+                $update_parts[] = "description = '".Db::escape_string($list_description)."'";
             }
 
-            if ($listStatus !== null && $listStatus !== '') {
-                $listStatus = (int)$listStatus;
-                if (!in_array($listStatus, [0, 2, 3])) {
+            if ($list_status !== null && $list_status !== '') {
+                $list_status = (int)$list_status;
+                if (!in_array($list_status, [0, 2, 3])) {
                     throw new InvalidParam('list_status', 'list_status must be a valid value (0, 2, 3).');
                 }
-                $updateFields['is_public'] = $listStatus;
+                $update_parts[] = "is_public = '".Db::escape_string($list_status)."'";
 
                 // Handle list_password only if list_status is 0 (private)
-                if ($listStatus == 0) {
-                    if (isset($listPassword) && $listPassword !== '') {
-                        $updateFields['password'] = substr(Db::escape_string($listPassword), 0, 16);
+                if ($list_status == 0) {
+                    if (isset($list_password) && $list_password !== '') {
+                        $update_parts[] = "password = '".Db::escape_string(substr($list_password, 0, 16))."'";
                     } else {
-                        $updateFields['password'] = null; // Remove the password
+                        $update_parts[] = "password = NULL";
                     }
                 }
             }
 
-            if ($listWatch !== null && $listWatch !== '') {
-                $listWatch = (int)$listWatch;
-                $currentWatchState = (int) Db::query("
+            if ($list_watch !== null && $list_watch !== '') {
+                $list_watch = (int)$list_watch;
+                $current_watch_state = (int) Db::select_value("
                     SELECT COUNT(*)
                     FROM cache_list_watches
-                    WHERE cache_list_id = '" . Db::escape_string($listId) . "'
-                    AND user_id = '" . Db::escape_string($user_id) . "'
-                ")->fetchColumn();
+                    WHERE cache_list_id = '".Db::escape_string($list_id)."'
+                      AND user_id = '".Db::escape_string($user_id)."'
+                ");
 
-                if ($listWatch == 1 && $currentWatchState == 0) {
-                    // Watched and not in cache_list_watches, insert
+                if ($list_watch == 1 && $current_watch_state == 0) {
                     Db::query("
                         INSERT INTO cache_list_watches (cache_list_id, user_id)
-                        VALUES ('" . Db::escape_string($listId) . "', '" . Db::escape_string($user_id) . "')
+                        VALUES ('".Db::escape_string($list_id)."', '".Db::escape_string($user_id)."')
                     ");
-                } elseif ($listWatch == 0 && $currentWatchState > 0) {
-                    // Unwatched and in cache_list_watches, delete
+                } elseif ($list_watch == 0 && $current_watch_state > 0) {
                     Db::query("
                         DELETE FROM cache_list_watches
-                        WHERE cache_list_id = '" . Db::escape_string($listId) . "'
-                        AND user_id = '" . Db::escape_string($user_id) . "'
+                        WHERE cache_list_id = '".Db::escape_string($list_id)."'
+                          AND user_id = '".Db::escape_string($user_id)."'
                     ");
                 }
             }
 
-            if (!empty($updateFields)) {
-                $updateQuery = "UPDATE cache_lists SET ";
-                $updateQuery .= implode(', ', array_map(function ($field, $value) {
-                    return "$field = '$value'";
-                }, array_keys($updateFields), $updateFields));
-                $updateQuery .= " WHERE id = '" . Db::escape_string($listId) . "'";
-
-                Db::query($updateQuery);
+            if (!empty($update_parts)) {
+                $update_query = "UPDATE cache_lists SET "
+                    . implode(', ', $update_parts)
+                    . " WHERE id = '".Db::escape_string($list_id)."'";
+                Db::query($update_query);
             }
 
             $result = array(
@@ -114,4 +119,3 @@ class WebService
         return Okapi::formatted_response($request, $result);
     }
 }
-
