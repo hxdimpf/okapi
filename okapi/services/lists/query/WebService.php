@@ -2,14 +2,9 @@
 
 namespace okapi\services\lists\query;
 
-use okapi\core\Exception\InvalidParam;
-use okapi\core\Exception\ParamMissing;
 use okapi\core\Db;
 use okapi\core\Okapi;
-use okapi\core\OkapiServiceRunner;
-use okapi\core\Request\OkapiInternalRequest;
 use okapi\core\Request\OkapiRequest;
-use okapi\services\logs\LogsCommon;
 use okapi\Settings;
 
 class WebService
@@ -24,7 +19,7 @@ class WebService
     public static function call(OkapiRequest $request)
     {
         $result = array(
-            'success' => false   // if the installation doesn't support it
+            'success' => false
         );
 
         if (Settings::get('OC_BRANCH') == 'oc.de')
@@ -59,12 +54,11 @@ class WebService
                 $lists[] = $list;
             }
 
-            $result = json_encode($lists, JSON_PRETTY_PRINT);
+            $result = array(
+                'success' => true,
+                'lists' => $lists
+            );
         }
         return Okapi::formatted_response($request, $result);
     }
-
-
-    // ------------------------------------------------------------------
-
 }

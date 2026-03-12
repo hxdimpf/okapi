@@ -44,7 +44,7 @@
         <p>A dictionary of the following structure:</p>
         <ul>
             <li>success - true</li>
-            <li>message - Cache list updated sucessfully</li>
+            <li>message - Cache list updated successfully</li>
         </ul>
     </returns>
 </xml>
