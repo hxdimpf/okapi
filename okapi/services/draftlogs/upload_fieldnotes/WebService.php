@@ -2,6 +2,7 @@
 
 namespace okapi\services\draftlogs\upload_fieldnotes;
 
+use okapi\core\Exception\BadRequest;
 use okapi\core\Exception\InvalidParam;
 use okapi\core\Exception\ParamMissing;
 use okapi\core\Db;
@@ -9,7 +10,6 @@ use okapi\core\Okapi;
 use okapi\core\OkapiServiceRunner;
 use okapi\core\Request\OkapiInternalRequest;
 use okapi\core\Request\OkapiRequest;
-use okapi\services\logs\LogsCommon;
 use okapi\Settings;
 
 class WebService
@@ -44,7 +44,7 @@ class WebService
 
         //First figure out whether it is base64 or not. If it is, decode it.
 
-        if (self::isBase64($field_notes)) {
+        if (self::is_base64($field_notes)) {
             $input = base64_decode($field_notes, true);
         } else {
             $input = $field_notes;
@@ -55,6 +55,10 @@ class WebService
         // for instance  mb_detect_encoding() miserably failed identifying UTF-LE w/o BOM correctly, consequently
         // it is the safest approach to do this manually with just a few lines of code which can be understood
         // by looking at it at a glance.
+
+        if (strlen($input) < 3) {
+            throw new InvalidParam('field_notes', "Input data is too short to be valid.");
+        }
 
         switch (true) {
             case $input[0] === "\xEF" && $input[1] === "\xBB" && $input[2] === "\xBF": // UTF-8 BOM
@@ -96,11 +100,11 @@ class WebService
                 throw new InvalidParam('Type', 'Invalid log type provided.');
             }
 
-            $dateString  = strtotime($n['date']);
-            if ($dateString === false) {
+            $date_timestamp = strtotime($n['date']);
+            if ($date_timestamp === false) {
                 throw new InvalidParam('`Date` field in log record', "Input data not recognized.");
             } else {
-                $date = date("Y-m-d H:i:s", $dateString);
+                $date = date("Y-m-d H:i:s", $date_timestamp);
             }
 
             $user_id     = $request->token->user_id;
@@ -130,9 +134,9 @@ class WebService
         // totalRecords.
 
         $result = array(
-            'success'          => true,
-            'totalRecords'     => $notes['totalRecords'],
-            'processedRecords' => $notes['processedRecords']
+            'success'           => true,
+            'total_records'     => $notes['total_records'],
+            'processed_records' => $notes['processed_records']
         );
         return Okapi::formatted_response($request, $result);
     }
@@ -155,14 +159,14 @@ class WebService
 
     private static function parse_notes($field_notes)
     {
-        $lines = self::parseCSV($field_notes);
+        $lines = self::parse_csv($field_notes);
         $submittable_logtype_names = Okapi::get_submittable_logtype_names();
-        $records          = [];
-        $totalRecords     = 0;
-        $processedRecords = 0;
+        $records           = [];
+        $total_records     = 0;
+        $processed_records = 0;
 
         foreach ($lines as $line) {
-            $totalRecords++;
+            $total_records++;
             $line = trim($line);
             $fields = str_getcsv($line);
 
@@ -172,7 +176,7 @@ class WebService
 
             if (!in_array($type, $submittable_logtype_names)) continue;
 
-            $log  = nl2br($fields[3]);
+            $log = mb_substr($fields[3], 0, 255);
 
             $records[] = [
                 'code' => $code,
@@ -180,9 +184,9 @@ class WebService
                 'type' => $type,
                 'log'  => $log,
             ];
-            $processedRecords++;
+            $processed_records++;
         }
-        return ['success' => true, 'records' => $records, 'totalRecords' => $totalRecords, 'processedRecords' => $processedRecords];
+        return ['success' => true, 'records' => $records, 'total_records' => $total_records, 'processed_records' => $processed_records];
     }
 
 
@@ -196,13 +200,13 @@ class WebService
     //
     // In this function we ony take log records which start with "OC" (for opencaching.de)
 
-    private static function parseCSV($fieldnotes)
+    private static function parse_csv($field_notes)
     {
         $output = [];
         $buffer = '';
         $start = true;
 
-        $lines = explode("\n", $fieldnotes);
+        $lines = explode("\n", $field_notes);
         $lines = array_filter($lines); // Drop empty lines
 
         foreach ($lines as $line) {
@@ -210,11 +214,12 @@ class WebService
                 $buffer = $line;
                 $start = false;
             } else {
-                if (strpos($line, 'OC') !== 0) {
-                    $buffer .= "\n" . $line;
-                } else {
+                // A new record starts with a cache code followed by an ISO date
+                if (preg_match('/^OC\w+,\d{4}-/', $line)) {
                     $output[] = trim($buffer);
                     $buffer = $line;
+                } else {
+                    $buffer .= "\n" . $line;
                 }
             }
         }
@@ -228,9 +233,13 @@ class WebService
     // ------------------------------------------------------------------
     // Check whether a string ($s) is base64 encoded or not.
 
-    private static function isBase64($s)
+    private static function is_base64($s)
     {
-        return (bool) preg_match('/^[a-zA-Z0-9\/\r\n+]*={0,2}$/', $s);
+        $decoded = base64_decode($s, true);
+        if ($decoded === false) {
+            return false;
+        }
+        return base64_encode($decoded) === $s;
     }
 
     // ------------------------------------------------------------------

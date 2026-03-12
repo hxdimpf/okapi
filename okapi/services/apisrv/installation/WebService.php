@@ -36,15 +36,15 @@ class WebService
         if (Settings::get('OC_BRANCH') == 'oc.de') {
             $result['has_draft_logs'] = true;
             $result['has_lists']      = true;
-            $result['cache_types']    = self::getCacheTypes();
-            $result['log_types']      = self::getLogTypes();
+            $result['cache_types']    = self::get_cache_types();
+            $result['log_types']      = self::get_log_types();
 
         }
 
         return Okapi::formatted_response($request, $result);
     }
 
-    private static function getCacheTypes() {
+    private static function get_cache_types() {
         $rs = Db::query("
            SELECT name
             FROM cache_type;
@@ -56,7 +56,7 @@ class WebService
         return $cache_types;
     }
 
-    private static function getLogTypes() {
+    private static function get_log_types() {
         $rs = Db::query("
            SELECT name
             FROM log_types;
