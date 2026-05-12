@@ -108,37 +108,26 @@ class WebService
         }
         else # oc.pl branch
         {
-            $rs = Db::query("
-                select max(id) as id
-                from cache_mod_cords
-                where
-                    cache_id    = '".Db::escape_string($cache_id)."'
-                    and user_id = '".Db::escape_string($user_id)."'
+            # cache_mod_cords uses a composite PK (cache_id, user_id) — no id column.
+            Db::query("
+                INSERT INTO cache_mod_cords (
+                    cache_id,
+                    user_id,
+                    latitude,
+                    longitude,
+                    date
+                ) VALUES (
+                    '".Db::escape_string($cache_id)."',
+                    '".Db::escape_string($user_id)."',
+                    '".Db::escape_string($latitude)."',
+                    '".Db::escape_string($longitude)."',
+                    NOW()
+                )
+                ON DUPLICATE KEY UPDATE
+                    latitude = VALUES(latitude),
+                    longitude = VALUES(longitude),
+                    date = NOW()
             ");
-            $id = null;
-            if($row = Db::fetch_assoc($rs)) {
-                $id = $row['id'];
-            }
-            if ($id == null) {
-                Db::query("
-                    insert into cache_mod_cords (
-                        cache_id, user_id, latitude, longitude
-                    ) values (
-                        '".Db::escape_string($cache_id)."',
-                        '".Db::escape_string($user_id)."',
-                        '".Db::escape_string($latitude)."',
-                        '".Db::escape_string($longitude)."'
-                    )
-                ");
-            } else {
-                Db::query("
-                    update cache_mod_cords
-                    set latitude  = '".Db::escape_string($latitude)."',
-                        longitude = '".Db::escape_string($longitude)."'
-                    where
-                        id = '".Db::escape_string($id)."'
-                ");
-            }
         }
     }
 }
