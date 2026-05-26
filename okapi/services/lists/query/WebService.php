@@ -3,6 +3,7 @@
 namespace okapi\services\lists\query;
 
 use okapi\core\Db;
+use okapi\core\Exception\BadRequest;
 use okapi\core\Okapi;
 use okapi\core\Request\OkapiRequest;
 use okapi\Settings;
@@ -18,13 +19,10 @@ class WebService
 
     public static function call(OkapiRequest $request)
     {
-        $result = array(
-            'success' => false
-        );
+        if (Settings::get('OC_BRANCH') != 'oc.de')
+            throw new BadRequest('This method is not supported in this OKAPI installation. See the has_lists field in services/apisrv/installation method.');
 
-        if (Settings::get('OC_BRANCH') == 'oc.de')
-        {
-            $user_id = $request->token->user_id;
+        $user_id = $request->token->user_id;
             $rs = Db::query("
                 SELECT
                     id,
@@ -54,11 +52,10 @@ class WebService
                 $lists[] = $list;
             }
 
-            $result = array(
-                'success' => true,
-                'lists' => $lists
-            );
-        }
+        $result = array(
+            'success' => true,
+            'lists' => $lists
+        );
         return Okapi::formatted_response($request, $result);
     }
 }
