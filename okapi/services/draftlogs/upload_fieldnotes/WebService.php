@@ -24,7 +24,7 @@ class WebService
     public static function call(OkapiRequest $request)
     {
         if (Settings::get('OC_BRANCH') != 'oc.de')
-            throw new BadRequest('This method is not supported in this OKAPI installation. See the has_draftlogs field in services/apisrv/installation method.');
+            throw new BadRequest('This method is not supported in this OKAPI installation. See the has_draft_logs field in services/apisrv/installation method.');
 
         $field_notes = $request->get_parameter('field_notes');
         if (!$field_notes) throw new ParamMissing('field_notes');
@@ -51,7 +51,7 @@ class WebService
         }
 
         // At this point we're dealing with the plain $input string, we need to figure out the encoding and convert
-        // to UTF-8. There is no single library function which proved to reliably identify the character encoding 
+        // to UTF-8. There is no single library function which proved to reliably identify the character encoding
         // for instance  mb_detect_encoding() miserably failed identifying UTF-LE w/o BOM correctly, consequently
         // it is the safest approach to do this manually with just a few lines of code which can be understood
         // by looking at it at a glance.
@@ -76,41 +76,34 @@ class WebService
                 $output = $input;
         }
 
-        // Uncomment the following line in a debug environemnt to visually inspect the $input data
-        // in the final form in which we will from now on process the data. If the data doesn't
-        // look right at this stage, there is no point in processing it any further as doing so
-        // will inevitably fail.
-        // 
-        //return self::debug($request, bin2hex($output));
-        
         $notes = self::parse_notes($output);
+        $processed_records = 0;
+
         foreach ($notes['records'] as $n)
         {
-            $geocache = OkapiServiceRunner::call(
-            'services/caches/geocache',
-                new OkapiInternalRequest($request->consumer, $request->token, array(
-                    'cache_code' => $n['code'],
-                    'fields' => 'internal_id'
-                ))
-            );
-
             try {
-                $type = Okapi::logtypename2id($n['type']);
+                $geocache = OkapiServiceRunner::call(
+                    'services/caches/geocache',
+                    new OkapiInternalRequest($request->consumer, $request->token, array(
+                        'cache_code' => $n['code'],
+                        'fields' => 'internal_id'
+                    ))
+                );
             } catch (\Exception $e) {
-                throw new InvalidParam('Type', 'Invalid log type provided.');
+                continue;
             }
 
             $date_timestamp = strtotime($n['date']);
             if ($date_timestamp === false) {
-                throw new InvalidParam('`Date` field in log record', "Input data not recognized.");
-            } else {
-                $date = date("Y-m-d H:i:s", $date_timestamp);
+                continue;
             }
+            $date = date("Y-m-d H:i:s", $date_timestamp);
 
+            $type        = Okapi::logtypename2id($n['type']);
             $user_id     = $request->token->user_id;
             $geocache_id = $geocache['internal_id'];
             $text        = $n['log'];
-            
+
             Db::query("
                 insert into field_note (
                     user_id, geocache_id, type, date, text
@@ -122,21 +115,18 @@ class WebService
                     '".Db::escape_string($text)."'
                 )
             ");
-
+            $processed_records++;
         }
 
-        // totalRecords is the number of parsed draft logs that were in the
-        // input data. Some logs may have been discarded because they may
-        // contain logs for other platforms than opencaching.de. In addition
-        // to discarding "foreign" logs, we also discard logs which contain a
-        // log type that is not understood by the platform.
-        // As a result, processedRecords can be smaller than or equal to
-        // totalRecords.
+        // total_records is the number of CSV records found in the input.
+        // processed_records is the number actually inserted; it may be less
+        // because fieldnotes from multi-platform apps contain records for
+        // other platforms (GC, OP, …) and log types not supported here.
 
         $result = array(
             'success'           => true,
             'total_records'     => $notes['total_records'],
-            'processed_records' => $notes['processed_records']
+            'processed_records' => $processed_records
         );
         return Okapi::formatted_response($request, $result);
     }
@@ -161,9 +151,8 @@ class WebService
     {
         $lines = self::parse_csv($field_notes);
         $submittable_logtype_names = Okapi::get_submittable_logtype_names();
-        $records           = [];
-        $total_records     = 0;
-        $processed_records = 0;
+        $records       = [];
+        $total_records = 0;
 
         foreach ($lines as $line) {
             $total_records++;
@@ -184,9 +173,8 @@ class WebService
                 'type' => $type,
                 'log'  => $log,
             ];
-            $processed_records++;
         }
-        return ['success' => true, 'records' => $records, 'total_records' => $total_records, 'processed_records' => $processed_records];
+        return ['records' => $records, 'total_records' => $total_records];
     }
 
 
@@ -240,19 +228,5 @@ class WebService
             return false;
         }
         return base64_encode($decoded) === $s;
-    }
-
-    // ------------------------------------------------------------------
-    // This is actually a debug routine to assist in debugging the webservice
-    // by generating an http response such that a php object can be visualized
-    // in the absence of using functions such as var_dump() or echo.
-    //
-    // It could be deleted but it may be useful for debugging in case of any
-    // doubts with respect to the correct function of this webservice.
-    
-    private static function debug($request, $debug)
-    {
-        $result = array('debug'=> json_encode($debug));
-        return Okapi::formatted_response($request, $result);
     }
 }
