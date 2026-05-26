@@ -1,66 +1,46 @@
-<xml>
+<xml infotags='ocde-specific'>
     <brief>Upload Fieldnotes</brief>
     <issue-id>630</issue-id>
     <desc>
         <p>This method allows you to upload a series of fieldnote objects in CSV format.
-        Fieldnote objects contain draft versions of log entries. Once uploaded, users will be able
+        Fieldnotes are draft versions of log entries. Once uploaded, users will be able
         to review, edit, and submit them via the Opencaching website.</p>
+        <p>This method is only available on installations that support draft logs. Check
+        the <b>has_draft_logs</b> field in
+        <a href="%OKAPI:methodargref:services/apisrv/installation%">services/apisrv/installation</a>
+        before calling it.</p>
     </desc>
-    <req name='field_notes' infotags='ocde-specific'>
-        <p>CSV formatted string with no header.</p>
-        <p>Each record describes a geocache draft log object consisting of four fields:</p>
+    <req name='field_notes'>
+        <p>The fieldnotes data. Accepted either as a raw string or base64-encoded
+        (base64 is recommended when the log text contains newlines or special characters,
+        and is required when using the OKAPI Browser).</p>
+        <p>The data is a sequence of CSV records with <b>no header line</b>. Each record
+        has four fields:</p>
         <ol>
-            <li>Geocache Code</li>
-            <li>Date</li>
-            <li>Log Type</li>
-            <li>Log Text</li>
+            <li><b>Geocache Code</b> - e.g. <tt>OC1012</tt></li>
+            <li><b>Date</b> - ISO 8601 UTC, e.g. <tt>2023-11-23T10:17:55Z</tt></li>
+            <li><b>Log Type</b> - must match a value from the <b>log_types</b> list in
+            <a href="%OKAPI:methodargref:services/apisrv/installation%">services/apisrv/installation</a>
+            (case sensitive). Records with unrecognized log types are silently skipped.</li>
+            <li><b>Log Text</b> - may span multiple lines and contain quote characters.</li>
         </ol>
-        <p>The first three fields are string entities that don't have line control characters in them,
-        the Log Text field is different as it may spread over muliple lines identified by line control
-        characters such as newline or linefeed and it may contain quote characters as well.
-        </p>
-        <p>The second field <i>Date</i> should be in ISO 8601 format (currently any format
-        acceptable by PHP's strtotime function also will do, but most of them don't handle
-        time zones properly, try to use ISO 8601!).</p>
-        <p>Since the log type is passed as a string, its value must match the
-        values supported by the platform (case sensitive!). In order to query
-        the names for supported log types, the service method <i>::services/apisrv/installation</i>
-        can and should be used.
-        </p>
-        <p>Note: This service method is not supported on all installations</p>
+        <p>Character encoding is detected automatically. Supported encodings: UTF-8
+        (with or without BOM), UTF-16LE (with or without BOM), UTF-16BE (with BOM).
+        This covers all known fieldnote sources (cgeo, Garmin, Looking4Cache, etc.).</p>
+        <p>Fieldnotes produced by multi-platform apps (e.g. cgeo) typically contain
+        records for several geocaching platforms at once. Records not starting with
+        an OC cache code are silently skipped; the difference between
+        <b>total_records</b> and <b>processed_records</b> in the response reflects this.</p>
     </req>
     <common-format-params/>
     <returns>
         <p>A dictionary of the following structure:</p>
         <ul>
-            <li>success - true</li>
-            <li>totalRecords - number of records in <i>field_notes</i></li>
-            <li>processedRecords - number of records inserted into the database</li>
+            <li><b>success</b> - true</li>
+            <li><b>total_records</b> - number of CSV records found in the input</li>
+            <li><b>processed_records</b> - number of records actually inserted as draft
+            logs; may be less than <b>total_records</b> when records are skipped (wrong
+            platform prefix, unsupported log type, unknown cache code, invalid date)</li>
         </ul>
-        <p>processedRecords may be less than totalRecords (it may even be zero) and that
-        is the case for the following reason: Fieldnotes are created from
-        Geocaching client applications. Some of these, for instance cgeo support multiple
-        geocaching platforms from which opencaching is only one of them. Conseqently
-        Fieldnotes may be  a "hybrid object" which may ontain records targeted at more than one
-        platform. For instance for geocaching.com logs, the records start with <b>GC....</b>
-        while on opencaching.de the log records start with <b>OC....</b>. Other opencaching
-        platforms use other codes, for instance opencaching.pl uses <b>OP...</b>.</p>
-        <p>
-        The client application may upload one and the same Fielnotes object to all platforms and
-        it is within the platform's discretion
-        to filter out what matches their object definition.
-        opencaching.de discards everything that doesn't start with "OC."</p>
-        <p>In addition, in that hybrid object there will be <i>Log Type</i>, a string that
-        inevitably has a different definition for different platforms. For instance, what
-        is called a "Write note" log on geocaching.com is recognized as "Note" some
-        opencaching platforms or "Comment" on others.
-        Consequently fieldnotes records may have Log Types which are not understood
-        by the target platform in which case they will be discarded without notice.</p>
-        <p>It is the responsibility of the client application to assign the correct Log Type
-        string when the offline log is created.
-        Sending log type names which are not supported by the designated target platform
-        is considered a programming error within the client application. In order
-        to determine a target's supported log type names the service: <i>::services/apisrv/installation</i>
-        can and should be used.</p>
     </returns>
 </xml>
