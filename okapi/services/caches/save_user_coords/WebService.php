@@ -46,10 +46,12 @@ class WebService
             'services/caches/geocache',
             new OkapiInternalRequest($request->consumer, $request->token, array(
                 'cache_code' => $cache_code,
-                'fields' => 'internal_id'
+                'fields' => 'internal_id|type'
             ))
         );
         $cache_id = $geocache['internal_id'];
+
+        self::validate_cache_type($geocache['type']);
 
         self::update_coordinates($cache_id, $request->token->user_id, $latitude, $longitude);
 
@@ -57,6 +59,22 @@ class WebService
             'success' => true
         );
         return Okapi::formatted_response($request, $result);
+    }
+
+    private static function validate_cache_type($cache_type)
+    {
+        if (Settings::get('OC_BRANCH') != 'oc.pl') {
+            return;
+        }
+
+        $allowed_types = array('Other', 'Quiz', 'Multi');
+
+        if (!in_array($cache_type, $allowed_types, true)) {
+            throw new InvalidParam(
+                'cache_code',
+                "User coordinates are not supported for cache type '$cache_type'."
+            );
+        }
     }
 
     private static function update_coordinates($cache_id, $user_id, $latitude, $longitude)
