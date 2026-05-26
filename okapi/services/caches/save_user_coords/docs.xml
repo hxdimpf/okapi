@@ -11,7 +11,10 @@
         method.</p>
     </desc>
     <req name='cache_code'>
-        <p>Code of the geocache</p>
+        <p>Code of the geocache.</p>
+        <p>Note: On OCPL-based sites, user coordinates are only supported for
+        caches of type <b>Multi</b>, <b>Quiz</b>, and <b>Other</b>. Supplying a
+        cache of any other type will result in an HTTP 400 error.</p>
     </req>
     <req name='user_coords'>
         <p>The coordinates are defined by a string in the format "lat|lon"</p>
