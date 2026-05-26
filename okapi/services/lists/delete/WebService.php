@@ -3,6 +3,7 @@
 namespace okapi\services\lists\delete;
 
 use okapi\core\Db;
+use okapi\core\Exception\BadRequest;
 use okapi\core\Exception\InvalidParam;
 use okapi\core\Okapi;
 use okapi\core\Request\OkapiRequest;
@@ -20,13 +21,10 @@ class WebService
 
     public static function call(OkapiRequest $request)
     {
-        $result = array(
-            'success' => false
-        );
+        if (Settings::get('OC_BRANCH') != 'oc.de')
+            throw new BadRequest('This method is not supported in this OKAPI installation. See the has_lists field in services/apisrv/installation method.');
 
-        if (Settings::get('OC_BRANCH') == 'oc.de')
-        {
-            $user_id = $request->token->user_id;
+        $user_id = $request->token->user_id;
 
             $list_id = $request->get_parameter('list_id');
 
@@ -50,11 +48,10 @@ class WebService
             Db::query("DELETE FROM cache_list_watches WHERE cache_list_id = '".Db::escape_string($list_id)."'");
             Db::query("DELETE FROM cache_lists WHERE id = '".Db::escape_string($list_id)."'");
 
-            $result = array(
-                'success' => true,
-                'message' => 'Cache list deleted successfully.'
-            );
-        }
+        $result = array(
+            'success' => true,
+            'message' => 'Cache list deleted successfully.'
+        );
         return Okapi::formatted_response($request, $result);
     }
 }
