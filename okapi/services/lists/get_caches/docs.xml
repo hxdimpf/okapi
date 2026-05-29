@@ -1,5 +1,6 @@
-<xml infotags='ocde-specific'>
+<xml>
     <brief>Get Caches On A List</brief>
+    <infotags>ocde-specific</infotags>
     <issue-id>627</issue-id>
     <desc>
         <p>This method is used to get the geocache codes for the caches that are on the list.</p>

@@ -1,5 +1,6 @@
-<xml infotags='ocde-specific'>
+<xml>
     <brief>Remove Caches From List</brief>
+    <infotags>ocde-specific</infotags>
     <issue-id>627</issue-id>
     <desc>
         <p>This method removes geocaches from a list.</p>

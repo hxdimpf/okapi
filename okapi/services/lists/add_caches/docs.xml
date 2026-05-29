@@ -1,5 +1,6 @@
-<xml infotags='ocde-specific'>
+<xml>
     <brief>Add Caches To List</brief>
+    <infotags>ocde-specific</infotags>
     <issue-id>627</issue-id>
     <desc>
         <p>This method is used to add geocaches to an existing list.</p>

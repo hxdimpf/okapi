@@ -1,5 +1,6 @@
-<xml infotags='ocde-specific'>
+<xml>
     <brief>Query Cache Lists</brief>
+    <infotags>ocde-specific</infotags>
     <issue-id>627</issue-id>
     <desc>
         <p>This method is used to query the metadata of all user owned cache lists.

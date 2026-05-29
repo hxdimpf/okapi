@@ -1,5 +1,6 @@
-<xml infotags='ocde-specific'>
+<xml>
     <brief>Update Cache List</brief>
+    <infotags>ocde-specific</infotags>
     <issue-id>627</issue-id>
     <desc>
         <p>This method is is used to update the meta data of an existing cache list.</p>
