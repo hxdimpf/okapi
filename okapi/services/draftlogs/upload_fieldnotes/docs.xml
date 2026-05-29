@@ -1,5 +1,6 @@
-<xml infotags='ocde-specific'>
+<xml>
     <brief>Upload Fieldnotes</brief>
+    <infotags>ocde-specific</infotags>
     <issue-id>630</issue-id>
     <desc>
         <p>This method allows you to upload a series of fieldnote objects in CSV format.
