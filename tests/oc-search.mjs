@@ -1,40 +1,44 @@
 // Searches OKAPI for geocaches and prints their OC codes.
 // Use the results as arguments to the other test scripts.
-// Usage: node oc-search.mjs [search_term]
-//
-// Without a search term, returns a handful of recently-active caches.
+// Usage: node oc-search.mjs [username]   — defaults to hxdimpf
 import { okapiPublicGet, okapiPost } from './oauth.mjs';
 
-const query = process.argv[2] ?? '';
+const owner_username = process.argv[2] ?? 'hxdimpf';
 
-// First search for cache codes matching the query (or just nearby a central point)
-const searchParams = query
-  ? { name: query, limit: 10, fields: 'code|name|location|status|type' }
-  : { center: '48.5|9.0', radius: 50, limit: 10, fields: 'code|name|location|status|type', status: 'Available' };
-
-const endpoint = query ? 'services/caches/search/byname' : 'services/caches/search/nearest';
-
-// Step 1: get cache codes from search
-const searchResult = await okapiPublicGet(endpoint, searchParams);
-
-if (searchResult.error) {
-  console.error('Search failed:', searchResult.error);
+// Step 1: resolve username → UUID
+const user = await okapiPublicGet('services/users/by_username', {
+  username: owner_username,
+  fields: 'uuid|username|caches_found',
+});
+if (user.error) {
+  console.error(`User lookup failed for "${owner_username}":`, user.error.developer_message ?? user.error);
   process.exit(1);
 }
+console.error(`owner: ${user.username}  uuid: ${user.uuid}`);
 
-const codes = searchResult.results;
+// Step 2: search by owner_uuid
+const search = await okapiPublicGet('services/caches/search/all', {
+  owner_uuid: user.uuid,
+  limit: 20,
+  status: 'Available|Temporarily unavailable|Archived',
+});
+if (search.error) {
+  console.error('Search failed:', search.error.developer_message ?? search.error);
+  process.exit(1);
+}
+const codes = search.results;
 if (!codes?.length) {
-  console.log('No results.');
+  console.log('No caches found.');
   process.exit(0);
 }
 
-// Step 2: fetch details for those codes
+// Step 3: fetch details
 const details = await okapiPost('services/caches/geocaches', {
   cache_codes: codes.join('|'),
-  fields: 'code|name|status|type|location',
+  fields: 'code|name|status|type',
 });
 
 for (const [code, cache] of Object.entries(details)) {
   if (cache.error) continue;
-  console.log(`${code}  ${cache.status.padEnd(12)}  ${cache.type.padEnd(20)}  ${cache.name}`);
+  console.log(`${code}  ${cache.status.padEnd(30)}  ${cache.type.padEnd(20)}  ${cache.name}`);
 }
