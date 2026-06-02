@@ -14,8 +14,8 @@ class OkapiOAuthServer extends OAuthServer
         # https://github.com/opencaching/okapi/issues/475
 
         $this->add_signature_method(new OAuthSignatureMethod_HMAC_SHA1());
-        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') {
-            # Request was made over HTTPS. Allow PLAINTEXT method.
+        if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') || \okapi\Settings::get('DEBUG')) {
+            # Allow PLAINTEXT over HTTPS, or in DEBUG mode (dev/ddev environments).
             $this->add_signature_method(new OAuthSignatureMethod_PLAINTEXT());
         }
     }
