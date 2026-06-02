@@ -1,10 +1,11 @@
 import { consumerKey, consumerSecret, accessToken, tokenSecret, baseUrl } from './config.js';
 
 // Builds an OAuth 1.0a PLAINTEXT Authorization header.
-// Signature = percentEncode(consumerSecret) + '&' + percentEncode(tokenSecret)
 export function oauthHeader() {
   const sig = encodeURIComponent(consumerSecret) + '%26' + encodeURIComponent(tokenSecret);
-  return `OAuth oauth_consumer_key="${consumerKey}", oauth_token="${accessToken}", oauth_signature="${sig}", oauth_signature_method="PLAINTEXT", oauth_version="1.0"`;
+  const timestamp = Math.floor(Date.now() / 1000);
+  const nonce = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+  return `OAuth oauth_consumer_key="${consumerKey}", oauth_token="${accessToken}", oauth_signature_method="PLAINTEXT", oauth_signature="${sig}", oauth_timestamp="${timestamp}", oauth_nonce="${nonce}", oauth_version="1.0"`;
 }
 
 export { consumerKey, baseUrl };
