@@ -46,122 +46,116 @@ class WebService
 
         $cache_id = $cache['cache_id'];
 
-        # Collect optional parameters to update
+        # Collect optional parameters
 
-        $cache_name = $request->get_parameter('cache_name');
-        $difficulty = $request->get_parameter('difficulty');
-        $terrain = $request->get_parameter('terrain');
-        $size2 = $request->get_parameter('size2');
+        $cache_name       = $request->get_parameter('cache_name');
+        $latitude         = $request->get_parameter('latitude');
+        $longitude        = $request->get_parameter('longitude');
+        $difficulty       = $request->get_parameter('difficulty');
+        $terrain          = $request->get_parameter('terrain');
+        $size2            = $request->get_parameter('size2');
         $short_description = $request->get_parameter('short_description');
-        $description = $request->get_parameter('description');
-        $hint2 = $request->get_parameter('hint2');
-        $status = $request->get_parameter('status');
+        $description      = $request->get_parameter('description');
+        $hint2            = $request->get_parameter('hint2');
+        $status           = $request->get_parameter('status');
+        $alt_wpts         = $request->get_parameter('alt_wpts');
+        $add_alt_wpts     = $request->get_parameter('add_alt_wpts');
+        $remove_alt_wpts  = $request->get_parameter('remove_alt_wpts');
 
-        # Check that at least one optional parameter is provided
-        if (empty($cache_name) && $difficulty === null && $terrain === null &&
-            empty($size2) && empty($short_description) && empty($description) &&
-            empty($hint2) && empty($status)) {
-            throw new InvalidParam('cache_name, difficulty, terrain, size2, short_description, description, hint2, status',
-                'At least one optional parameter is required.');
+        if ($cache_name === null && $latitude === null && $longitude === null &&
+            $difficulty === null && $terrain === null && $size2 === null &&
+            $short_description === null && $description === null && $hint2 === null &&
+            $status === null && $alt_wpts === null && $add_alt_wpts === null &&
+            $remove_alt_wpts === null) {
+            throw new InvalidParam('cache_name',
+                'At least one parameter to update must be provided.');
         }
 
-        # Validate parameters
+        # Validate
 
-        if ($cache_name !== null && !empty($cache_name)) {
-            if (strlen($cache_name) > 256) {
-                throw new InvalidParam('cache_name', 'cache_name must not exceed 256 characters.');
-            }
+        if ($latitude !== null) {
+            $latitude = floatval($latitude);
+            if ($latitude < -90 || $latitude > 90)
+                throw new InvalidParam('latitude', 'latitude must be between -90 and 90.');
+        }
+        if ($longitude !== null) {
+            $longitude = floatval($longitude);
+            if ($longitude < -180 || $longitude > 180)
+                throw new InvalidParam('longitude', 'longitude must be between -180 and 180.');
         }
 
         if ($difficulty !== null && $difficulty !== '') {
-            $difficulty = floatval($difficulty);
-            if ($difficulty < 1.0 || $difficulty > 5.0) {
-                throw new InvalidParam('difficulty', 'difficulty must be between 1.0 and 5.0.');
-            }
+            $difficulty = max(2, min(10, (int)round(floatval($difficulty) * 2)));
         } else {
             $difficulty = null;
         }
 
         if ($terrain !== null && $terrain !== '') {
-            $terrain = floatval($terrain);
-            if ($terrain < 1.0 || $terrain > 5.0) {
-                throw new InvalidParam('terrain', 'terrain must be between 1.0 and 5.0.');
-            }
+            $terrain = max(2, min(10, (int)round(floatval($terrain) * 2)));
         } else {
             $terrain = null;
         }
 
+        $size_int = null;
         if ($size2 !== null && $size2 !== '') {
-            $valid_sizes = ['none', 'nano', 'micro', 'small', 'regular', 'large', 'xlarge', 'other'];
-            if (!in_array($size2, $valid_sizes)) {
+            $size_map = ['none' => 7, 'nano' => 8, 'micro' => 2, 'small' => 3,
+                         'regular' => 4, 'large' => 5, 'xlarge' => 6, 'other' => 7];
+            if (!isset($size_map[$size2]))
                 throw new InvalidParam('size2', 'Invalid size2 value.');
-            }
+            $size_int = $size_map[$size2];
         }
 
-        if ($short_description !== null && strlen($short_description) > 255) {
-            throw new InvalidParam('short_description', 'short_description must not exceed 255 characters.');
-        }
-
+        $status_id = null;
         if ($status !== null && $status !== '') {
-            $valid_statuses = ['Available', 'Temporarily unavailable', 'Archived'];
-            if (!in_array($status, $valid_statuses)) {
-                throw new InvalidParam('status', 'Invalid status value.');
+            try {
+                $status_id = Okapi::cache_status_name2id($status);
+            } catch (\Exception $e) {
+                throw new InvalidParam('status', "Invalid status value '$status'.");
             }
         }
 
-        # Build update query
+        # Build caches table update parts
 
         $update_parts = array();
 
-        if ($cache_name !== null && !empty($cache_name)) {
+        if ($cache_name !== null && $cache_name !== '')
             $update_parts[] = "name = '".Db::escape_string($cache_name)."'";
-        }
-
-        if ($difficulty !== null) {
+        if ($latitude !== null)
+            $update_parts[] = "latitude = '".Db::escape_string($latitude)."'";
+        if ($longitude !== null)
+            $update_parts[] = "longitude = '".Db::escape_string($longitude)."'";
+        if ($difficulty !== null)
             $update_parts[] = "difficulty = '".Db::escape_string($difficulty)."'";
-        }
-
-        if ($terrain !== null) {
+        if ($terrain !== null)
             $update_parts[] = "terrain = '".Db::escape_string($terrain)."'";
-        }
-
-        if ($size2 !== null && $size2 !== '') {
-            $update_parts[] = "size2 = '".Db::escape_string($size2)."'";
-        }
-
-        if ($short_description !== null && $short_description !== '') {
-            $update_parts[] = "short_description = '".Db::escape_string($short_description)."'";
-        }
-
-        if ($description !== null && $description !== '') {
-            $update_parts[] = "description = '".Db::escape_string($description)."'";
-        }
-
-        if ($hint2 !== null && $hint2 !== '') {
-            $update_parts[] = "hint = '".Db::escape_string($hint2)."'";
-        }
-
-        if ($status !== null && $status !== '') {
-            $update_parts[] = "status = '".Db::escape_string($status)."'";
-        }
-
-        # Add last_modified timestamp
-        $update_parts[] = "last_modified = NOW()";
-
-        # Handle alternative waypoints updates
-        $alt_wpts = $request->get_parameter('alt_wpts');
-        $add_alt_wpts = $request->get_parameter('add_alt_wpts');
-        $remove_alt_wpts = $request->get_parameter('remove_alt_wpts');
+        if ($size_int !== null)
+            $update_parts[] = "size = '".Db::escape_string($size_int)."'";
+        if ($status_id !== null)
+            $update_parts[] = "status = '".Db::escape_string($status_id)."'";
 
         Db::execute('start transaction');
 
         try {
-            # Update cache record
+            # Update caches table
             if (!empty($update_parts)) {
-                $update_sql = "UPDATE caches SET "
+                Db::query("UPDATE caches SET "
                     . implode(', ', $update_parts)
-                    . " WHERE cache_id = '".Db::escape_string($cache_id)."'";
-                Db::query($update_sql);
+                    . " WHERE cache_id = '".Db::escape_string($cache_id)."'");
+            }
+
+            # Update cache_desc table (description, hint, short_desc live there)
+            $desc_parts = array();
+            if ($short_description !== null && $short_description !== '')
+                $desc_parts[] = "short_desc = '".Db::escape_string($short_description)."'";
+            if ($description !== null && $description !== '')
+                $desc_parts[] = "`desc` = '".Db::escape_string($description)."'";
+            if ($hint2 !== null && $hint2 !== '')
+                $desc_parts[] = "hint = '".Db::escape_string($hint2)."'";
+            if (!empty($desc_parts)) {
+                $desc_parts[] = "last_modified = NOW()";
+                Db::query("UPDATE cache_desc SET "
+                    . implode(', ', $desc_parts)
+                    . " WHERE cache_id = '".Db::escape_string($cache_id)."'");
             }
 
             # Handle waypoint updates
