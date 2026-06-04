@@ -2,14 +2,17 @@
     <brief>Archive/delete a geocache</brief>
     <issue-id></issue-id>
     <desc>
-        <p>This method allows the cache owner to archive (delete) a geocache.
+        <p>This method allows the cache owner to archive a geocache.
         Only the cache owner can delete a cache. When a cache is archived:</p>
         <ul>
-            <li>The cache record is archived/deleted</li>
-            <li>Associated waypoints are archived/deleted</li>
+            <li>The cache status changes to <b>Archived</b></li>
+            <li>The cache listing remains visible (e.g. via direct URL or services/caches/read)</li>
+            <li>The cache is <b>excluded from search results</b> — search methods will not return it</li>
             <li>All log entries remain in the system as historical records (they are NOT deleted)</li>
-            <li>Users can still view logs associated with the archived cache</li>
+            <li>Users can still view the listing and associated logs (read-only access)</li>
         </ul>
+        <p>The term "Delete" here means: retire the cache from active play. The listing
+        and its history are preserved; they are just marked inactive.</p>
     </desc>
     <req name='cache_code'>
         <p>Code of the cache to archive/delete. The authenticated user must be the cache owner.</p>
