@@ -32,7 +32,11 @@ class WebService
         $cache_type = $request->get_parameter('cache_type');
         if (empty($cache_type))
             throw new InvalidParam('cache_type', 'cache_type is mandatory.');
-        $type_id = self::get_type_id($cache_type);
+        try {
+            $type_id = Okapi::cache_type_name2id($cache_type);
+        } catch (\Exception $e) {
+            throw new InvalidParam('cache_type', "Unknown cache type '$cache_type'.");
+        }
 
         $latitude = $request->get_parameter('latitude');
         $longitude = $request->get_parameter('longitude');
@@ -200,17 +204,6 @@ class WebService
             Db::execute("rollback");
             throw $e;
         }
-    }
-
-    private static function get_type_id($cache_type)
-    {
-        $type_map = [
-            'Traditional' => 1, 'Multi'   => 2, 'Quiz'  => 3,
-            'Moving'      => 4, 'Virtual' => 5, 'Webcam'=> 6,
-            'Event'       => 7, 'Other'   => 8, 'Own'   => 9,
-            'Podcast'     => 10,
-        ];
-        return isset($type_map[$cache_type]) ? $type_map[$cache_type] : 8;
     }
 
     private static function get_wpt_subtype($okapi_type)
