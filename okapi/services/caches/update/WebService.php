@@ -31,7 +31,7 @@ class WebService
 
         # Fetch the cache and verify ownership
         $cache = Db::select_row("
-            SELECT id as cache_id, user_id, wp_oc
+            SELECT cache_id, user_id, wp_oc
             FROM caches
             WHERE wp_oc = '".Db::escape_string($cache_code)."'
         ");
@@ -160,7 +160,7 @@ class WebService
             if (!empty($update_parts)) {
                 $update_sql = "UPDATE caches SET "
                     . implode(', ', $update_parts)
-                    . " WHERE id = '".Db::escape_string($cache_id)."'";
+                    . " WHERE cache_id = '".Db::escape_string($cache_id)."'";
                 Db::query($update_sql);
             }
 

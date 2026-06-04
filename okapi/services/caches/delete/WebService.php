@@ -27,7 +27,7 @@ class WebService
 
         # Fetch cache and verify ownership
         $cache = Db::select_row("
-            SELECT id as cache_id, user_id, status
+            SELECT cache_id, user_id, status
             FROM caches
             WHERE wp_oc = '".Db::escape_string($cache_code)."'
         ");
@@ -53,7 +53,7 @@ class WebService
         Db::execute("
             UPDATE caches
             SET status = '".Db::escape_string($archived_id)."'
-            WHERE id = '".Db::escape_string($cache['cache_id'])."'
+            WHERE cache_id = '".Db::escape_string($cache['cache_id'])."'
         ");
 
         $result = array(
