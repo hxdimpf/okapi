@@ -79,11 +79,19 @@ class WebService
             # Minimal INSERT — mirrors Symfony's newCache controller exactly.
             # Database triggers handle: uuid, wp_oc (from waypoint pool), date_created,
             # last_modified, listing_last_modified, search index, cache_coordinates, etc.
+            # Fields not set by the BEFORE INSERT trigger (meta_last_modified,
+            # wp_gc_maintained, wp_nc, desc_languages, default_desclang,
+            # show_cachelists, protect_old_coords, needs_maintenance,
+            # listing_outdated, flags_last_modified) must be supplied explicitly
+            # because OKAPI's DB connection runs in strict SQL mode.
             Db::query("
                 INSERT INTO caches
                     (user_id, name, longitude, latitude, type, status, country,
                      date_hidden, date_activate, size, difficulty, terrain,
-                     logpw, search_time, way_length, wp_gc, node, meta_last_modified)
+                     logpw, search_time, way_length, wp_gc, node,
+                     meta_last_modified, wp_gc_maintained, wp_nc, desc_languages,
+                     default_desclang, show_cachelists, protect_old_coords,
+                     needs_maintenance, listing_outdated, flags_last_modified)
                 VALUES (
                     '".Db::escape_string($user_id)."',
                     '".Db::escape_string($cache_name)."',
@@ -97,7 +105,10 @@ class WebService
                     '".Db::escape_string($size_int)."',
                     '".Db::escape_string($diff_int)."',
                     '".Db::escape_string($terr_int)."',
-                    '', 0, 0, '', 4, NOW()
+                    '', 0, 0, '', 4,
+                    NOW(), '', '', '',
+                    '".Db::escape_string($desc_lang)."', 1, 0,
+                    0, 0, NOW()
                 )
             ");
 
