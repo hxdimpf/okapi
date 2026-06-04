@@ -133,7 +133,7 @@ class WebService
                     desc_languages, default_desclang, show_cachelists,
                     protect_old_coords, needs_maintenance, listing_outdated,
                     flags_last_modified, gdpr_deletion, country, node,
-                    wp_gc, wp_gc_maintained
+                    wp_gc, wp_gc_maintained, date_activate, need_npa_recalc
                 ) VALUES (
                     '".Db::escape_string($cache_code)."',
                     '".Db::escape_string($cache_name)."',
@@ -151,10 +151,10 @@ class WebService
                     NOW(),
                     UUID(),
                     0, NOW(), '', '',
-                    '', 'en', 0,
+                    '', 'en', 1,
                     0, 0, 0,
                     NOW(), 0, 'DE', 0,
-                    '', ''
+                    '', '', NOW(), 1
                 )
             ";
 
