@@ -128,7 +128,11 @@ class WebService
                 INSERT INTO caches (
                     wp_oc, name, latitude, longitude, user_id, type,
                     difficulty, terrain, size, date_hidden, status,
-                    date_created, last_modified, meta_last_modified, uuid
+                    date_created, last_modified, meta_last_modified, uuid,
+                    is_publishdate, listing_last_modified, logpw, wp_nc,
+                    desc_languages, default_desclang, show_cachelists,
+                    protect_old_coords, needs_maintenance, listing_outdated,
+                    flags_last_modified, gdpr_deletion, country, node
                 ) VALUES (
                     '".Db::escape_string($cache_code)."',
                     '".Db::escape_string($cache_name)."',
@@ -144,7 +148,11 @@ class WebService
                     NOW(),
                     NOW(),
                     NOW(),
-                    UUID()
+                    UUID(),
+                    0, NOW(), '', '',
+                    '', 'en', 0,
+                    0, 0, 0,
+                    NOW(), 0, 'DE', 0
                 )
             ";
 
