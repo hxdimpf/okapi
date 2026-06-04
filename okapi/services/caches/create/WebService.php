@@ -108,33 +108,42 @@ class WebService
 
         $cache_code = self::generate_cache_code();
 
+        # Convert difficulty/terrain from floats (1.0-5.0) to tinyint (10-50)
+        $difficulty_int = $difficulty !== null ? (int)($difficulty * 10) : 25; # default 2.5
+        $terrain_int = $terrain !== null ? (int)($terrain * 10) : 20; # default 2.0
+
+        # Convert size2 to size (tinyint) - simplified mapping
+        $size_int = 3; # default small
+        if ($size2) {
+            $size_map = ['none' => 0, 'nano' => 1, 'micro' => 2, 'small' => 3, 'regular' => 4, 'large' => 5, 'xlarge' => 6, 'other' => 7];
+            $size_int = isset($size_map[$size2]) ? $size_map[$size2] : 3;
+        }
+
         Db::execute('start transaction');
 
         try {
             # Insert cache record
+            # Note: description/hint are stored in separate tables, not in the main caches table
             $insert_sql = "
                 INSERT INTO caches (
                     wp_oc, name, latitude, longitude, user_id, type,
-                    difficulty, terrain, size2, short_description, description,
-                    hint, date_hidden, req_passwd, date_created, last_modified, status
+                    difficulty, terrain, size, date_hidden, status,
+                    date_created, last_modified, uuid
                 ) VALUES (
                     '".Db::escape_string($cache_code)."',
                     '".Db::escape_string($cache_name)."',
                     '".Db::escape_string($latitude)."',
                     '".Db::escape_string($longitude)."',
                     '".Db::escape_string($user_id)."',
-                    '".Db::escape_string($cache_type)."',
-                    ".($difficulty !== null ? "'".Db::escape_string($difficulty)."'" : "NULL").",
-                    ".($terrain !== null ? "'".Db::escape_string($terrain)."'" : "NULL").",
-                    ".($size2 ? "'".Db::escape_string($size2)."'" : "NULL").",
-                    ".($short_description ? "'".Db::escape_string($short_description)."'" : "NULL").",
-                    ".($description ? "'".Db::escape_string($description)."'" : "NULL").",
-                    ".($hint2 ? "'".Db::escape_string($hint2)."'" : "NULL").",
+                    '".self::get_type_code($cache_type)."',
+                    '".Db::escape_string($difficulty_int)."',
+                    '".Db::escape_string($terrain_int)."',
+                    '".Db::escape_string($size_int)."',
                     '".Db::escape_string($date_hidden)."',
-                    '".Db::escape_string($req_passwd)."',
+                    '".self::get_status_code('Available')."',
                     NOW(),
                     NOW(),
-                    'Available'
+                    UUID()
                 )
             ";
 
@@ -210,6 +219,36 @@ class WebService
         }
 
         throw new BadRequest("Unable to generate unique cache code. Please try again.");
+    }
+
+    private static function get_type_code($cache_type)
+    {
+        # Map cache type names to tinyint codes
+        # These codes vary by installation, so this is a best-effort mapping
+        $type_map = [
+            'Traditional' => 1,
+            'Multi' => 2,
+            'Quiz' => 3,
+            'Moving' => 4,
+            'Virtual' => 5,
+            'Webcam' => 6,
+            'Event' => 7,
+            'Other' => 8,
+            'Own' => 9,
+            'Podcast' => 10,
+        ];
+        return isset($type_map[$cache_type]) ? $type_map[$cache_type] : 8; # default 'Other'
+    }
+
+    private static function get_status_code($status)
+    {
+        # Map cache status to tinyint codes
+        $status_map = [
+            'Available' => 1,
+            'Temporarily unavailable' => 2,
+            'Archived' => 3,
+        ];
+        return isset($status_map[$status]) ? $status_map[$status] : 1;
     }
 
     private static function insert_waypoint($cache_id, $name, $latitude, $longitude, $type, $description)
