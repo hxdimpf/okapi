@@ -30,7 +30,7 @@ class WebService
         }
 
         # Fetch the cache and verify ownership
-        $cache = Db::select_assoc("
+        $cache = Db::select_row("
             SELECT id as cache_id, user_id, wp_oc
             FROM caches
             WHERE wp_oc = '".Db::escape_string($cache_code)."'
