@@ -83,7 +83,7 @@ class WebService
                 INSERT INTO caches
                     (user_id, name, longitude, latitude, type, status, country,
                      date_hidden, date_activate, size, difficulty, terrain,
-                     logpw, search_time, way_length, wp_gc, node)
+                     logpw, search_time, way_length, wp_gc, node, meta_last_modified)
                 VALUES (
                     '".Db::escape_string($user_id)."',
                     '".Db::escape_string($cache_name)."',
@@ -97,7 +97,7 @@ class WebService
                     '".Db::escape_string($size_int)."',
                     '".Db::escape_string($diff_int)."',
                     '".Db::escape_string($terr_int)."',
-                    '', 0, 0, '', 4
+                    '', 0, 0, '', 4, NOW()
                 )
             ");
 
