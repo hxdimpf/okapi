@@ -7,12 +7,13 @@
         <ul>
             <li>The cache status changes to <b>Archived</b></li>
             <li>The cache listing remains visible (e.g. via direct URL or services/caches/read)</li>
-            <li>The cache is <b>excluded from search results</b> — search methods will not return it</li>
-            <li>All log entries remain in the system as historical records (they are NOT deleted)</li>
-            <li>Users can still view the listing and associated logs (read-only access)</li>
+            <li>The cache is <b>no longer active</b> — new log entries cannot be submitted</li>
+            <li>All existing log entries remain in the system as historical records (they are NOT deleted)</li>
+            <li>Users can still view the listing and its history (read-only access)</li>
         </ul>
         <p>The term "Delete" here means: retire the cache from active play. The listing
-        and its history are preserved; they are just marked inactive.</p>
+        and its history are preserved; the cache is simply marked as archived and
+        becomes read-only.</p>
     </desc>
     <req name='cache_code'>
         <p>Code of the cache to archive/delete. The authenticated user must be the cache owner.</p>
