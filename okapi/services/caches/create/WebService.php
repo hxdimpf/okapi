@@ -132,7 +132,8 @@ class WebService
                     is_publishdate, listing_last_modified, logpw, wp_nc,
                     desc_languages, default_desclang, show_cachelists,
                     protect_old_coords, needs_maintenance, listing_outdated,
-                    flags_last_modified, gdpr_deletion, country, node
+                    flags_last_modified, gdpr_deletion, country, node,
+                    wp_gc, wp_gc_maintained
                 ) VALUES (
                     '".Db::escape_string($cache_code)."',
                     '".Db::escape_string($cache_name)."',
@@ -152,7 +153,8 @@ class WebService
                     0, NOW(), '', '',
                     '', 'en', 0,
                     0, 0, 0,
-                    NOW(), 0, 'DE', 0
+                    NOW(), 0, 'DE', 0,
+                    '', ''
                 )
             ";
 
