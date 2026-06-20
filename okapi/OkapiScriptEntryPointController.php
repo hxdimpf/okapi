@@ -22,9 +22,11 @@ class OkapiScriptEntryPointController
         # When running standalone (DocumentRoot = okapi/), there is no /okapi/ prefix.
         # In the legacy monolithic setup, OKAPI is served from the /okapi/ subpath.
         if (getenv('OKAPI_STANDALONE')) {
-            # Standalone: URI is already relative to okapi/ docroot
-            if ($uri === '' || $uri[0] === '/')
-                $uri = $uri === '/' ? '' : substr($uri, 1);
+            # Standalone: strip leading / and optional okapi/ prefix
+            # (test suites and legacy clients may include the /okapi/ prefix)
+            $uri = ltrim($uri, '/');
+            if (str_starts_with($uri, 'okapi/'))
+                $uri = substr($uri, 6);
         } else {
             if (strpos($uri, "/okapi/") !== false)
                 $uri = substr($uri, strpos($uri, "/okapi/"));
