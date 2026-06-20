@@ -19,14 +19,21 @@ class OkapiScriptEntryPointController
         # server configurations. It will also address a more subtle issue described here:
         # https://stackoverflow.com/questions/8040461/request-uri-unexpectedly-contains-fqdn
 
-        if (strpos($uri, "/okapi/") !== false)
-            $uri = substr($uri, strpos($uri, "/okapi/"));
+        # When running standalone (DocumentRoot = okapi/), there is no /okapi/ prefix.
+        # In the legacy monolithic setup, OKAPI is served from the /okapi/ subpath.
+        if (getenv('OKAPI_STANDALONE')) {
+            # Standalone: URI is already relative to okapi/ docroot
+            if ($uri === '' || $uri[0] === '/')
+                $uri = $uri === '/' ? '' : substr($uri, 1);
+        } else {
+            if (strpos($uri, "/okapi/") !== false)
+                $uri = substr($uri, strpos($uri, "/okapi/"));
 
-        # Make sure we're in the right directory (.htaccess should make sure of that).
-
-        if (strpos($uri, "/okapi/") !== 0)
-            throw new \Exception("'$uri' is outside of the /okapi/ path.");
-        $uri = substr($uri, 7);
+            # Make sure we're in the right directory (.htaccess should make sure of that).
+            if (strpos($uri, "/okapi/") !== 0)
+                throw new \Exception("'$uri' is outside of the /okapi/ path.");
+            $uri = substr($uri, 7);
+        }
 
         # Initializing internals and running pre-request cronjobs (we don't want
         # cronjobs to be run before "okapi/update", for example before database
