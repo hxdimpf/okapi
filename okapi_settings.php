@@ -30,7 +30,7 @@ function get_okapi_settings()
         'DB_CHARSET'                => 'utf8mb4',
         'SITELANG'                  => 'de',
         'TIMEZONE'                  => 'Europe/Berlin',
-        'SITE_URL'                  => 'https://oc3.baiti.net',
+        'SITE_URL'                  => 'https://oc3.baiti.net/',
         'REGISTRATION_URL'          => 'https://oc3.baiti.net/register.php',
         'HTTPS_ENABLED'             => false,
         'OC_NODE_ID'                => 4,
