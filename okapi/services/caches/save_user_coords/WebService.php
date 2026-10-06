@@ -36,6 +36,10 @@ class WebService
             $part_ref = floatval($part_ref);
         }
         list($latitude, $longitude) = $parts;
+        if ($latitude < -90 || $latitude > 90)
+            throw new InvalidParam('user_coords', "Latitude '$latitude' is out of range (-90 to 90).");
+        if ($longitude < -180 || $longitude > 180)
+            throw new InvalidParam('user_coords', "Longitude '$longitude' is out of range (-180 to 180).");
 
         # Verify cache_code
 
