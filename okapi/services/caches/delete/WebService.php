@@ -41,10 +41,11 @@ class WebService
         $archived_id = Okapi::cache_status_name2id('Archived'); # = 3
 
         if ($cache['status'] == $archived_id) {
-            return Okapi::formatted_response($request, array(
+            $result = array(
                 'success' => true,
                 'message' => 'Cache was already archived.',
-            ));
+            );
+            return Okapi::formatted_response($request, $result);
         }
 
         # Set status to Archived. The DB triggers (cachesBeforeUpdate/cachesAfterUpdate)
