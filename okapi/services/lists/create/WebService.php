@@ -36,14 +36,13 @@ class WebService
                 throw new InvalidParam('list_name', 'list_name is mandatory and must not be empty.');
             }
 
+            // description and password are NOT NULL without a default in OCDE's schema
             $insert_fields = array(
                 'name' => Db::escape_string($list_name),
-                'user_id' => Db::escape_string($user_id)
+                'user_id' => Db::escape_string($user_id),
+                'description' => Db::escape_string((string)$list_description),
+                'password' => ''
             );
-
-            if (!empty($list_description)) {
-                $insert_fields['description'] = Db::escape_string($list_description);
-            }
 
             if ($list_status !== null && $list_status !== '') {
                 $list_status = (int)$list_status;
@@ -75,10 +74,13 @@ class WebService
                     throw new InvalidParam('is_watched', 'is_watched must be a valid value (0, 1).');
                 }
 
-                Db::query("
-                    INSERT INTO cache_list_watches (cache_list_id, user_id, is_watched)
-                    VALUES ('".Db::escape_string($list_id)."', '".Db::escape_string($user_id)."', '".Db::escape_string($is_watched)."')
-                ");
+                // A row in cache_list_watches means the user watches the list
+                if ($is_watched == 1) {
+                    Db::query("
+                        INSERT INTO cache_list_watches (cache_list_id, user_id)
+                        VALUES ('".Db::escape_string($list_id)."', '".Db::escape_string($user_id)."')
+                    ");
+                }
             }
 
         $result = array(
