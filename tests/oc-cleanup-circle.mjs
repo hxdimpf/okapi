@@ -1,34 +1,50 @@
-// Removes all Nut-XX caches created by oc-create-circle.mjs
+// Archives all Nut-XX caches created by oc-create-circle.mjs
 // Usage: node oc-cleanup-circle.mjs
-import { okapiPost } from './oauth.mjs';
+import { okapiPost, okapiGet } from './oauth.mjs';
 
-const caches = [];
-for (let i = 1; i <= 36; i++) {
-  caches.push(String(i).padStart(2, '0'));
+// Bounding box around the circle (center N52.327366 E9.543, with margin)
+const search = await okapiGet('services/caches/search/bbox', {
+    bbox: '52.24|9.45|52.42|9.64',
+    limit: 500,
+});
+
+if (search.error) {
+    console.error('Search failed:', JSON.stringify(search.error));
+    process.exit(1);
 }
 
-console.log(`Deleting ${caches.length} circle caches...`);
+const codes = search.results;
+if (!codes || codes.length === 0) {
+    console.log('No caches found in bbox.');
+    process.exit(0);
+}
+
+// caches/delete takes OC codes, so look up which codes are the Nut caches
+const details = await okapiGet('services/caches/geocaches', {
+    cache_codes: codes.join('|'),
+    fields: 'code|name',
+});
+
+const nuts = Object.values(details)
+    .filter(c => c && /^Nut-(\d+)$/.test(c.name))
+    .sort((a, b) => parseInt(a.name.split('-')[1]) - parseInt(b.name.split('-')[1]));
+
+console.log(`Archiving ${nuts.length} circle caches...`);
 
 let deleted = 0;
 let failed = 0;
 
-for (const num of caches) {
-  const name = `Nut-${num}`;
-  try {
+for (const cache of nuts) {
     const result = await okapiPost('services/caches/delete', {
-      cache_code: name,
+        cache_code: cache.code,
     });
-    if (result.error) {
-      console.log(`✗ ${name}: ${result.error.developer_message || result.error.status}`);
-      failed++;
+    if (result.success) {
+        console.log(`✓ ${cache.name} (${cache.code}) archived`);
+        deleted++;
     } else {
-      console.log(`✓ ${name} deleted`);
-      deleted++;
+        console.log(`✗ ${cache.name} (${cache.code}): ${result.error?.developer_message || JSON.stringify(result)}`);
+        failed++;
     }
-  } catch (e) {
-    console.log(`✗ ${name}: ${e.message}`);
-    failed++;
-  }
 }
 
-console.log(`\nDeleted: ${deleted}, Failed: ${failed}`);
+console.log(`\nArchived: ${deleted}, Failed: ${failed}`);
