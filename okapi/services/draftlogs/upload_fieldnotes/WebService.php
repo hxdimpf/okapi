@@ -158,8 +158,11 @@ class WebService
             $total_records++;
             $line = trim($line);
             $fields = str_getcsv($line);
+            if (count($fields) < 4) continue;  // not a "code,date,type,log" record
 
             $code = $fields[0];
+            if (strpos($code, 'OC') !== 0) continue;  // other platform (GC, OP, ...); this service is OCDE-only
+
             $date = $fields[1];
             $type = $fields[2];
 
@@ -186,7 +189,9 @@ class WebService
     // In this process we also skip records that will not be understood
     // by the platform, where platform is one of: geocaching.com, opencaching.{de,pl,...}
     //
-    // In this function we ony take log records which start with "OC" (for opencaching.de)
+    // A record starts with a cache code of any platform (OC, GC, OP, ...) followed
+    // by an ISO date, so records of other platforms don't get glued onto the
+    // previous log text. parse_notes() then keeps only the OC records.
 
     private static function parse_csv($field_notes)
     {
@@ -203,7 +208,7 @@ class WebService
                 $start = false;
             } else {
                 // A new record starts with a cache code followed by an ISO date
-                if (preg_match('/^OC\w+,\d{4}-/', $line)) {
+                if (preg_match('/^[A-Z]{2}\w+,\d{4}-/', $line)) {
                     $output[] = trim($buffer);
                     $buffer = $line;
                 } else {
