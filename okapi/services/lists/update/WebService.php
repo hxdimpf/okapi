@@ -74,7 +74,7 @@ class WebService
                     if (isset($list_password) && $list_password !== '') {
                         $update_parts[] = "password = '".Db::escape_string(substr($list_password, 0, 16))."'";
                     } else {
-                        $update_parts[] = "password = NULL";
+                        $update_parts[] = "password = ''";
                     }
                 }
             }
